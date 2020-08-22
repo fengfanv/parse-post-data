@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>上传文件测试</title>
+	</head>
+	<body>
+		<input type="file" id="files" />
+		<button type="button" ty="filebutton">上传文件</button>
+		<button type="button">普通post数据请求</button>
+		<script src="./jquery.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			//普通post请求
+			$("button[ty=filebutton]+button").click(function() {
+				console.log('hahah1')
+				$.ajax({
+					type:"post",
+					url:"/api/setName",
+					data:{
+						"name":"我是谁",
+						"sex":"男"
+					},
+					headers:{'Content-type':'application/json'},
+					success(data){
+						console.log('请求成功！');
+					},
+					error(err){
+						console.log(err)
+					}
+				})
+			});
+
+			//上传文件
+			$("button[ty=filebutton]").click(function() {
+				var files = document.getElementById('files').files;
+				console.log(files);
+				if (files.length >= 1) {
+					var form = new FormData();
+					var obj = JSON.stringify({"objId":1,"objText":"我是啦啦"});
+					form.append("obj",obj);
+					form.append("files", files[0]);
+					form.append("name", '康阳');
+					form.append("id", 741852123456);
+					// $.ajax({
+					// 	type: "post",
+					// 	url: "/api/uploadFiles",
+					// 	data: form,
+					// 	contentType: false, // 注意这里应设为false
+					// 	processData: false, //false
+					// 	cache: false, //缓存
+					// 	success: function(data) {
+					// 		console.log(data);
+					// 	}
+					// })
+
+					// //原生ajax实现上传文件显示上传进度
+					// var xhr = new XMLHttpRequest();
+					// xhr.open('post', '/api/uploadFiles', true);
+					// xhr.onreadystatechange = function() {
+					// 	if (this.readyState == 4) {
+					// 		//console.log(this.responseText);打印上传的数据信息
+					// 	}
+					// }
+					// //1、progress事件：用来返回进度信息
+					// //	下载的progress事件属于XMLHttpRequest对象//xhr.onprogress=function(){}
+					// //	上传的progress事件属于XMLHttpRequest.upload对象xhr.upload.onprogress=function(){}
+					// //2、load事件：传输成功完成。
+					// //3、abort事件：传输被用户取消。
+					// //4、error事件：传输中出现错误。
+					// //5、loadstart事件：传输开始。
+					// //6、loadEnd事件：传输结束，但是不知道成功还是失败。
+					//xhr.upload.onprogress要写在xhr.send方法前面，否则event.lengthComputable状态不会改变，只有在最后一次才能获得，也就是100%的时候
+					// xhr.upload.onprogress = function(ev) {
+					// 	//console.log(ev);//控制台打印
+					// 	/*progress { 
+					// 		target: XMLHttpRequestUpload, 
+					// 		isTrusted: true, 
+					// 		lengthComputable: true,//这是一个状态，表示发送的长度有了变化，可计算
+					// 		loaded: 15020, //已上传的数据大小，单位字节B，1024B===1KB
+					// 		total: 15020,//总大小，单位字节B，
+					// 		eventPhase: 0, 
+					// 		bubbles: false, 
+					// 		cancelable: false, 
+					// 		defaultPrevented: false, 
+					// 		timeStamp: 1445144855459000, 
+					// 		originalTarget: XMLHttpRequestUpload
+					// 	}*/
+					// 	if (ev.lengthComputable) {
+					// 		var precent = 100 * ev.loaded / ev.total;
+					// 		console.log(precent);
+					// 	}
+					// }
+					// xhr.send(form);
+
+					//jq,ajax实现上传文件显示上传进度
+					$.ajax({
+						type: "post",
+						url: "/api/uploadFiles",
+						data: form,
+						contentType: false, //必须false才会自动加上正确的Content-Type
+						processData: false, //必须false才会避开jQuery对formdata的默认处理
+						cache: false, //缓存
+						xhr: function() {
+							//获取ajaxSettings中的xhr对象，为它的upload属性绑定progress事件的处理函数  
+							myXhr = $.ajaxSettings.xhr();
+							if (myXhr.upload) { //检查upload属性是否存在  
+								//绑定progress事件的回调函数  
+								myXhr.upload.addEventListener('progress', function(ev) {
+									if (ev.lengthComputable) {
+										var precent = 100 * ev.loaded / ev.total;
+										console.log(precent);
+									}
+								}, false);
+							}
+							return myXhr; //xhr对象返回给jQuery使用  
+						},
+						success: function(data) {
+							console.log(data);
+						}
+					})
+				}
+			})
+		</script>
+	</body>
+</html>
