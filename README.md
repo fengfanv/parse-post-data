@@ -1,6 +1,6 @@
-# parse-post-data - 模块中间件
+# parse-post-data - 数据接收解析模块
 
-node接收及解析post数据模块中间件
+node接收及解析post数据接收解析模块
 
 #### 作者：Fengfanv
 
@@ -18,6 +18,8 @@ node接收及解析post数据模块中间件
 
 2、express
 
+3、koa2
+
 #### 支持解析POST编码格式：
 
 1、'application/json'
@@ -33,9 +35,12 @@ node接收及解析post数据模块中间件
 ##### 1、http、https模块使用案例
 ```javascript
 const http = require('http');
-const postDataParse = require('./parse-post-data');//引入parse-post-data.js
+const ParsePostData = require('./parse-post-data');//引入parse-post-data.js
+
+const ppd = new ParsePostData();//默认设置
+//const ppd = new ParsePostData(__dirname+'/public');//设置接收文件类型数据，文件保存地址
 http.createServer(async function (request, response) {
-	await postDataParse.parse(request);//解析post数据
+	await ppd.parse(request);//解析post数据
 	console.log(request.body)
 	
 	//...
@@ -49,9 +54,12 @@ http.createServer(async function (request, response) {
 const http = require('http');
 const express = require('express');
 const app = new express();
-const postDataParse = require('./parse-post-data');//引入parse-post-data.js
+const ParsePostData = require('./parse-post-data');//引入parse-post-data.js
 
-app.use(postDataParse.parse);//挂载中间件
+const ppd = new ParsePostData();//默认设置
+//const ppd = new ParsePostData(__dirname+'/public');//设置接收文件类型数据，文件保存地址
+
+app.use(ppd.parse);//挂载模块
 
 app.post('/api/uploadFiles',function(req,res){
 	console.log(req.body);
@@ -62,6 +70,32 @@ app.post('/api/uploadFiles',function(req,res){
 
 http.createServer(app).listen(80,function(){
 	console.log(80,'服务启动成功！');
+});
+```
+##### 2、koa2模块使用案例
+```javascript
+const Koa = require('koa2');
+const koa_static = require('koa-static');
+const app = new Koa();
+const ParsePostData = require('./parse-post-data');
+const pdp = new ParsePostData(__dirname+'/public');
+
+app.use(ppd.koaParse);//挂载模块
+
+app.use(async function(ctx,next){
+    console.log(ctx.req.body)
+    await next();
+	
+	//...
+});
+
+//...
+
+//释放当前目录下public内的文件
+app.use(koa_static(__dirname+'/public'));
+
+app.listen(80, function () {
+    console.log('启动成功');
 });
 ```
 

@@ -2,7 +2,7 @@
  * 文件名：parse-post-data.js
  * 作者：https://github.com/fengfanv
  * 描述：post数据解析器
- * 修改时间：2020-8-22
+ * 修改时间：2020-8-27
  * 资源地址：https://github.com/fengfanv/parse-post-data
  * parseFormData方法案例（上传文件）：https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFiles
  * parseFormData方法案例（上传文件夹）：https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFolder
@@ -20,6 +20,7 @@ const contentTypeRegExp = {
     'text/plain': new RegExp('text/plain', 'i')
     //
 };
+//支持express,http,https
 async function parse(request, response, next) {
     return new Promise(function (resolve, reject) {
         try {
@@ -55,13 +56,10 @@ async function parse(request, response, next) {
                         resolve(data);
                         next && next();
                     } else if (contentTypeRegExp['multipart/form-data'].exec(contentType)) {
-                        let data = await parseFormData(postData, {
-                            "storageFilePath": __dirname + '/',//文件存放到哪里，如果上传的数据中有文件必须设置
-                            "renameFileName": false,//是否重命名文件 默认false
-                        });//解析formdata数据
+                        let data = await parseFormData(postData);//解析formdata数据
                         let newData = {};
-                        for(let key in data){
-                            newData[key] = data.data;
+                        for (let key in data) {
+                            newData[key] = data[key].data;
                         }
                         //console.log(newData);
                         request.body = newData;
@@ -83,12 +81,35 @@ async function parse(request, response, next) {
         }
     })
 };
-exports.parse = parse;
+//exports.parse = parse;
+//支持koa2
+async function koaParse(ctx, next) {
+    if(ctx.req.method==='POST'){
+        await parse(ctx.req, null);
+    }
+    await next();
+}
+
+//配置文件保存地址
+var config = {
+    storageFilePath:__dirname
+};
+
+module.exports = function (savePathObj) {
+    /**
+     * savePathObj 接收文件文件保存地址
+     */
+    if (savePathObj != undefined && typeof savePathObj === 'string') {
+        config.storageFilePath = savePathObj;
+    };
+    this.parse = parse;
+    this.koaParse = koaParse;
+}
 
 //解析formdata数据
-function parseFormData(formdata, configdata) {
+function parseFormData(formdata) {
     return new Promise(function (resolve, reject) {
-        var config = configdata;
+        
         //2020年5月6日通过接收编码为base64的数据在转换成binary编码数据实现文件上传
         var postData = Buffer.from(formdata, 'base64').toString('binary');//将编码为base64的字符串转换为buffer实体再转换为编码为binary的字符串
 
@@ -253,6 +274,7 @@ function parseFormData(formdata, configdata) {
                             //检测文件夹是否存在
                             let sz = ssNumber + 1;
                             let testAddress = config.storageFilePath + '/' + pathArr.slice(0, sz).join('/');
+
                             fs.stat(testAddress, function (pathErr) {
                                 if (pathErr) {
                                     //没有文件夹则创建
