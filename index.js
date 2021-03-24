@@ -37,65 +37,92 @@ const { parsePost } = require('./parse-post-data');//引入解析post数据模�
 
 
 
-// //http,https模块试验区
-// const fs = require('fs');
-// const url = require('url');
-// const path = require('path');
-// //静态文件地址
-// const PUBLIC_PATH = path.join(__dirname, "public");
-// function app(request, response) {
-// 	response.setHeader('Access-Control-Allow-Origin', '*');
-// 	response.setHeader("Access-Control-Allow-Headers", "X-Requested-With");
-// 	response.setHeader("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
-// 	response.setHeader("Access-control-max-age", "1000");
+//http,https模块试验区
+const fs = require('fs');
+const url = require('url');
+const path = require('path');
+const querystring = require('querystring');
+//静态文件地址
+const PUBLIC_PATH = path.join(__dirname, "public");
+function app(request, response) {
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader("Access-Control-Allow-Headers", "X-Requested-With");
+    response.setHeader("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
+    response.setHeader("Access-control-max-age", "1000");
 
-// 	if (request.method === 'OPTIONS') { response.end() };
-// 	let pathname = url.parse(request.url).pathname;
-// 	fs.stat(path.join(PUBLIC_PATH, decodeURI(pathname)), function (err, stat) {
-// 		if (err) {
-// 			if (pathname == '/api/setName' && request.method == 'POST') {
-// 				setName(request, response);
-// 			} else if (pathname == '/api/uploadFiles' && request.method == 'POST') {
-// 				uploadFiles(request, response);
-// 			} else {
-// 				response.statusCode = 404;
-// 				response.setHeader('Content-Type', 'text/plain;charset=utf-8');
-// 				response.end('404 ' + pathname);
-// 			}
-// 		} else {
-// 			fs.readFile(path.join(PUBLIC_PATH, decodeURI(pathname)), function (err, file) {
-// 				if (err) {
-// 					//访问根路径 / 时会走这里
-// 					console.error('index.js', '读取文件路径：', path.join(PUBLIC_PATH, decodeURI(pathname)));
-// 					response.statusCode = 404;
-// 					response.end('404 ' + pathname);
-// 					return false;
-// 				}
-// 				response.statusCode = 200;
-// 				response.end(file);
-// 			})
-// 		}
-// 	})
-// }
-// async function setName(request, response) {
-// 	response.statusCode = 200;
-// 	response.setHeader('Content-Type', 'text/json;charset=utf-8');
-// 	const data = await parsePost(request);
-// 	console.log(request.body);
-// 	response.end(JSON.stringify({ "status": "true", "message": "接收成功~" }));
-// }
-// async function uploadFiles(request, response) {
-// 	response.statusCode = 200;
-// 	response.setHeader('Content-Type', 'text/json;charset=utf-8');
-//	const data = await parsePost(request,{
-// 		storageFilePath:"./public"   //当前接口接收的文件保存在哪里
-// 	});
-// 	console.log(request.body);
-// 	response.end(JSON.stringify({ "status": "true", "message": "接收成功~" }));
-// }
-// http.createServer(app).listen(80, () => {
-// 	console.log('端口：80，服务已启动！');
-// });
+    //处理复杂请求的预检请求
+    if (request.method === 'OPTIONS') {
+        response.writeHead(200, {
+            'Content-Type': 'text/plain',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild, sessionToken ',
+            'Access-Control-Allow-Methods': 'PUT, POST, GET, DELETE, OPTIONS'
+        });
+        return false;
+    };
+    let pathname = url.parse(request.url).pathname;
+    fs.stat(path.join(PUBLIC_PATH, decodeURI(pathname)), function (err, stat) {
+        if (err) {
+            if (pathname == '/api/setName' && request.method == 'POST') {
+                setName(request, response);
+            } else if (pathname == '/api/uploadFiles' && request.method == 'POST') {
+                uploadFiles(request, response);
+            } else if (pathname == '/api/queryData' && request.method == 'GET') {
+                queryData(request, response);
+            } else {
+                response.statusCode = 404;
+                response.setHeader('Content-Type', 'text/plain;charset=utf-8');
+                response.end('404 ' + pathname);
+            }
+        } else {
+            fs.readFile(path.join(PUBLIC_PATH, decodeURI(pathname)), function (err, file) {
+                if (err) {
+                    //访问根路径 / 时会走这里
+                    console.error('index.js', '读取文件路径：', path.join(PUBLIC_PATH, decodeURI(pathname)));
+                    response.statusCode = 404;
+                    response.end('404 ' + pathname);
+                    return false;
+                }
+                response.statusCode = 200;
+                response.end(file);
+            })
+        }
+    })
+}
+async function setName(request, response) {
+    response.statusCode = 200;
+    response.setHeader('Content-Type', 'text/json;charset=utf-8');
+
+    const data = await parsePost(request);
+    console.log(request.body);
+    
+    response.end(JSON.stringify({ "status": "true", "message": "接收成功~" }));
+}
+async function uploadFiles(request, response) {
+    response.statusCode = 200;
+    response.setHeader('Content-Type', 'text/json;charset=utf-8');
+
+    const data = await parsePost(request, {
+        storageFilePath: "./public"   //当前接口接收的文件保存在哪里
+    });
+    console.log(request.body);
+    
+    response.end(JSON.stringify({ "status": "true", "message": "接收成功~" }));
+}
+function queryData(request, response) {
+    response.statusCode = 200;
+    response.setHeader('Content-Type', 'text/json;charset=utf-8');
+    
+    let urlParams = url.parse(request.url).query;
+    let data = querystring.parse(urlParams) || {};
+
+    console.log(data);
+
+    response.end(JSON.stringify({ "status": "true", "message": "接收成功~" }));
+}
+http.createServer(app).listen(80, () => {
+    console.log('端口：80，服务已启动！');
+});
 
 
 
