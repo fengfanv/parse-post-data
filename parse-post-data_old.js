@@ -2,14 +2,13 @@
  * 文件名：parse-post-data.js
  * 作者：https://github.com/fengfanv
  * 描述：post数据解析器
- * 修改时间：2021-3-24
+ * 修改时间：2021-3-15
  * 资源地址：https://github.com/fengfanv/parse-post-data
  * parseFormData方法案例（上传文件）：https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFiles
  * parseFormData方法案例（上传文件夹）：https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFolder
- * 此版本与github上版本不一致，github上为标准版，这个为缩减优化版，只支持原生node(http,https)
  */
-const fs = require('fs');
-const qs = require('querystring');
+var fs = require('fs');
+var qs = require('querystring');
 //匹配POST提交数据方式正则
 const contentTypeRegExp = {
     'application/json': new RegExp('application/json', 'i'),
@@ -19,20 +18,15 @@ const contentTypeRegExp = {
     'multipart/form-data': new RegExp('multipart/form-data', 'i'),
     //编码格式：可以上传文件等二进制数据，上传表单键值对，最后会转化为一条信息，信息内每条数据已边界字符串为单元，用分隔符分开
     'text/plain': new RegExp('text/plain', 'i')
+    //
 };
-//支持http,https
-/**
- * 解析post数据
- * @param {*} request 
- * @param {any} config 解析配置，如上传文件保存地址
- * @param {*} next 
- */
-exports.parsePost = function (request, config, next) {
+//支持express,http,https
+async function parse(request, response, next) {
     return new Promise(function (resolve, reject) {
         try {
-            if (request.method == 'POST') {
+            if (request.method === 'POST') {
                 var header = request.headers;
-                var contentType = typeof header['content-type'] != 'undefined' ? header['content-type'] : null;
+                var contentType = header['content-type'] != undefined ? header['content-type'] : null;
                 if (contentTypeRegExp['multipart/form-data'].exec(contentType)) {
                     //multipart/form-data编码数据，用base64编码方式接受，
                     request.setEncoding('base64');
@@ -49,60 +43,73 @@ exports.parsePost = function (request, config, next) {
                             //json字符串
                             data = JSON.parse(postData);
                         } else {
-                            //key1=val1&key2=val2,兼容jquery设置content-type不准确的bug
+                            //key1=val1&key2=val2,解决jquery设置content-type无效的bug
                             data = qs.parse(postData);
                         }
                         //console.log(postData);
                         request.body = data;
-                        next && next();
                         resolve(data);
+                        next && next();
                     } else if (contentTypeRegExp['application/x-www-form-urlencoded'].exec(contentType)) {
                         let data = qs.parse(postData);
                         request.body = data;
-                        next && next();
                         resolve(data);
+                        next && next();
                     } else if (contentTypeRegExp['multipart/form-data'].exec(contentType)) {
-                        let storageFilePath = typeof config != 'undefined' && typeof config.storageFilePath != 'undefined' ? config.storageFilePath : undefined;
-                        let data = await parseFormData(postData,storageFilePath);//解析formdata数据
+                        let data = await parseFormData(postData);//解析formdata数据
                         let newData = {};
                         for (let key in data) {
                             newData[key] = data[key].data;
                         }
                         //console.log(newData);
                         request.body = newData;
-                        next && next();
                         resolve(newData);
+                        next && next();
                     } else {
                         //其它方式编码数据不处理直接返回
-                        next && next();
                         resolve(postData);
+                        next && next();
                     }
                 });
-                request.on('error', function (err) {
-                    reject(err);
-                });
-                request.on('close', function (message) {
-                    reject(message);
-                });
             } else {
-                next && next();
                 resolve();
+                next && next();
             }
         } catch (err) {
-            console.log('parse-post-data', err);
+            console.log('parse-post-data error：', err);
             reject(err);
         }
     })
 };
+//exports.parse = parse;
+//支持koa2
+async function koaParse(ctx, next) {
+    if(ctx.req.method==='POST'){
+        await parse(ctx.req, null);
+    }
+    await next();
+}
 
+//配置文件保存地址
+var config = {
+    storageFilePath:__dirname
+};
+
+module.exports = function (savePathObj) {
+    /**
+     * savePathObj 接收文件文件保存地址
+     */
+    if (savePathObj != undefined && typeof savePathObj === 'string') {
+        config.storageFilePath = savePathObj;
+    };
+    this.parse = parse;
+    this.koaParse = koaParse;
+}
 
 //解析formdata数据
-function parseFormData(formdata, storageFilePath) {
-    if (typeof storageFilePath == 'undefined') {
-        storageFilePath = __dirname;
-    }
-    
+function parseFormData(formdata) {
     return new Promise(function (resolve, reject) {
+        
         //2020年5月6日通过接收编码为base64的数据在转换成binary编码数据实现文件上传
         var postData = Buffer.from(formdata, 'base64').toString('binary');//将编码为base64的字符串转换为buffer实体再转换为编码为binary的字符串
 
@@ -201,7 +208,7 @@ function parseFormData(formdata, storageFilePath) {
 
             //3.2、根据endzuobiao坐标之后为数据本体（3.2、提取参数的数据本体）
             //根据提取的数据状态信息，分别用不同编码方式的数据来提取数据体
-            if (typeof param['Content-Type'] !== 'undefined') {
+            if (param['Content-Type'] !== undefined) {
 
 
 
@@ -211,26 +218,28 @@ function parseFormData(formdata, storageFilePath) {
                 let data = dataBody.substring(4, dataBody.length - 4); //去除数据头尾的换行符
 
                 //console.log('这应该是图片类数据');
-                /*
-                .png 正常解析保存
-                .jpg 正常解析保存
-                .mp4 正常解析保存
-                .mp3 正常解析保存
-                .txt 正常解析保存，txt内容有中文也会正常保存，
-                .word 正常保存，但是打开时说无法正常读取文件，需要修复，修复后可正常打开
-                */
+				/*
+				.png 正常解析保存
+				.jpg 正常解析保存
+				.mp4 正常解析保存
+				.mp3 正常解析保存
+				.txt 正常解析保存，txt内容有中文也会正常保存，
+				.word 正常保存，但是打开时说无法正常读取文件，需要修复，修复后可正常打开
+				*/
                 //把图片类数据写入文件
 
                 //跟据config设置文件名称及文件存放地址
                 let primaryFileName = param.filename.replace(/['"]/g, "");//原文件名
-                //storageFilePath  存放文件的地址
+                //config.renameFileName 是否重新设置文件名 默认false
+                //config.storageFilePath  存放文件的地址
                 //2020-8-22日添加，整合上传文件及上传文件夹案例
                 var filename = param.filename.replace(/['"]/g, "");
+                //let filename = config.renameFileName === undefined || config.renameFileName === false ? primaryFileName : Date.now() + '_' + param.filename.replace(/['"]/g, "");//保存时的文件名
                 //检查是否有文件夹
                 if (new RegExp('/+').test(filename)) {
                     //有文件夹
                     //跟据用户config设置文件存放地址
-                    let filePath = storageFilePath + '/' + filename;
+                    let filePath = config.storageFilePath + '/' + filename;
                     //1、分析文件地址
                     //上传的文件夹里面的文件经过处理后是的文件地址为：lpr/images/picture.jpg
                     var pathArr = filename.split('/');
@@ -264,7 +273,7 @@ function parseFormData(formdata, storageFilePath) {
                             }
                             //检测文件夹是否存在
                             let sz = ssNumber + 1;
-                            let testAddress = storageFilePath + '/' + pathArr.slice(0, sz).join('/');
+                            let testAddress = config.storageFilePath + '/' + pathArr.slice(0, sz).join('/');
 
                             fs.stat(testAddress, function (pathErr) {
                                 if (pathErr) {
@@ -310,7 +319,7 @@ function parseFormData(formdata, storageFilePath) {
                 } else {
                     //没有文件夹
                     //创建可写为流文件
-                    let filePath = storageFilePath + '/' + filename;
+                    let filePath = config.storageFilePath + '/' + filename;
                     let writerStream = fs.createWriteStream(filePath);
                     writerStream.write(data, 'binary');
                     // 标记文件末尾

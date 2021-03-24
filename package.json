@@ -1,0 +1,23 @@
+{
+  "name": "parse-post-data",
+  "version": "1.0.0",
+  "description": "node接收及解析post数据接收解析模块",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fengfanv/parse-post-data.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fengfanv/parse-post-data/issues"
+  },
+  "homepage": "https://github.com/fengfanv/parse-post-data#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "koa": "^2.13.1"
+  }
+}

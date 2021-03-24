@@ -35,14 +35,13 @@ node接收及解析post数据接收解析模块
 ##### 1、http、https模块使用案例
 ```javascript
 const http = require('http');
-const ParsePostData = require('./parse-post-data');//引入parse-post-data.js
+const { parsePost } = require('./parse-post-data');//引入parse-post-data.js
 
-const ppd = new ParsePostData();//默认设置
-//const ppd = new ParsePostData(__dirname+'/public');//设置接收文件类型数据，文件保存地址
 http.createServer(async function (request, response) {
-	await ppd.parse(request);//解析post数据
+	await parsePost(request);//解析post数据
 	console.log(request.body)
 	
+	response.end(JSON.stringify(request.body))//返回响应数据
 	//...
 	
 }).listen(80,function(){
@@ -54,16 +53,13 @@ http.createServer(async function (request, response) {
 const http = require('http');
 const express = require('express');
 const app = new express();
-const ParsePostData = require('./parse-post-data');//引入parse-post-data.js
+const { parsePost } = require('./parse-post-data');//引入parse-post-data.js
 
-const ppd = new ParsePostData();//默认设置
-//const ppd = new ParsePostData(__dirname+'/public');//设置接收文件类型数据，文件保存地址
-
-app.use(ppd.parse);//挂载模块
-
-app.post('/api/uploadFiles',function(req,res){
+app.post('/api/uploadFiles',async function(req,res){
+	await parsePost(req,{"storageFilePath":"./public"});//解析post数据，并且给指定接口配置上传文件的文件保存位置
+	
 	console.log(req.body);
-	res.end(JSON.stringify(req.body))
+	res.send(JSON.stringify(req.body))//返回响应数据
 });
 
 //...
@@ -77,14 +73,13 @@ http.createServer(app).listen(80,function(){
 const Koa = require('koa2');
 const koa_static = require('koa-static');
 const app = new Koa();
-const ParsePostData = require('./parse-post-data');
-const pdp = new ParsePostData(__dirname+'/public');
 
-app.use(ppd.koaParse);//挂载模块
+const { parsePost } = require('./parse-post-data');//引入parse-post-data.js
 
 app.use(async function(ctx,next){
+	await parsePost(ctx.req);//解析post数据
     console.log(ctx.req.body)
-    await next();
+    ctx.body = JSON.stringify(ctx.req.body)//返回响应数据
 	
 	//...
 });
@@ -98,4 +93,7 @@ app.listen(80, function () {
     console.log('启动成功');
 });
 ```
+
+### 最近更新
+> `2021-3-24` 1、简化及统一使用方法 2、加入配置指定接口上传文件保存位置配置项
 
