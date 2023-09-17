@@ -107,14 +107,14 @@ function parseFormData(formdata, storageFilePath) {
         var postDataLen = postData.length;
         var i = postDataLen;
         var foundValue = '';
-        while (foundValue != '\r\n--') {
+        while (foundValue != '\r\n--' && i>0) {
             i--;
             foundValue = postData.slice(i, i + 4);
         }
         var hexname = postData.substring(i, postDataLen).replace(/[\r\n]/g, "");
-        hexname = hexname.substring(0, hexname.length - 2);//去除formdata尾部的--
+        hexname = hexname.replace(/--$/, ""); //为hexname除去formdata结尾的--
         //至此找到hexname值。其中hexname的后16位，为hex值
-        //console.log('hexname',hexname)
+        // console.log('hexname',hexname)
 
 
         //2、根据上面找到的hexname值，把每一个formdata中的每个参数分割出来（把formdata里面的参数分别提取出来）
@@ -128,12 +128,13 @@ function parseFormData(formdata, storageFilePath) {
         //通过hexname分割数据，然后把formdata中的参数转成数组。转成数组后，在过滤一下，防止在不上传文件时，防止切割后的参数体中仍存在hexname的情况
         var dataArrLen = dataArr.length;
         
+        let clearHexnameRegExp = new RegExp(`(${hexname}--|${hexname})`, 'g');//这里为啥hexname后面带有两个--，因为formdata的最后一个hexname后面有两个--
         for (let i = 0; i < dataArrLen; i++) {
             let index = i;
             //处理编码为binary
-            dataArr[index] = dataArr[index].replace(new RegExp(hexname, 'g'), '');
+            dataArr[index] = dataArr[index].replace(clearHexnameRegExp, '');
             //处理编码为utf8
-            dataArr_utf8[index] = dataArr_utf8[index].replace(new RegExp(hexname, 'g'), '');
+            dataArr_utf8[index] = dataArr_utf8[index].replace(clearHexnameRegExp, '');
         }
         // console.log('formdata参数数量', dataArrLen);
 
@@ -142,6 +143,12 @@ function parseFormData(formdata, storageFilePath) {
 
         //更加详细的解析分割提取formdata里每一个参数的方法
         function eachArr(index) {
+            if (index >= dataArrLen) {
+                //formData中所有参数处理完成
+                resolve(dataBody);
+                return false;
+            };
+
             var item = dataArr[index];//这里item现在是formdata中某一个参数的数据状态信息(数据名称、数据类型等)和数据值本身的结合体
             var addIndex = index + 1;
 
@@ -224,15 +231,11 @@ function parseFormData(formdata, storageFilePath) {
                                 saveFile(filePath, data).then((path) => {
                                     param.data = filePath;
                                     //执行回调
-                                    if (addIndex !== dataArrLen) {
-                                        eachArr(addIndex);
-                                    }
+                                    eachArr(addIndex);
                                 }).catch((err) => {
                                     param.errMessage = '写入文件失败';
                                     //执行回调
-                                    if (addIndex !== dataArrLen) {
-                                        eachArr(addIndex);
-                                    }
+                                    eachArr(addIndex);
                                 })
                                 return false;
                             }
@@ -262,15 +265,11 @@ function parseFormData(formdata, storageFilePath) {
                         saveFile(filePath, data).then((path) => {
                             param.data = filePath;
                             //执行回调
-                            if (addIndex !== dataArrLen) {
-                                eachArr(addIndex);
-                            }
+                            eachArr(addIndex);
                         }).catch((err) => {
                             param.errMessage = '写入文件失败';
                             //执行回调
-                            if (addIndex !== dataArrLen) {
-                                eachArr(addIndex);
-                            }
+                            eachArr(addIndex);
                         })
                     }
                 } else {
@@ -279,37 +278,26 @@ function parseFormData(formdata, storageFilePath) {
                     saveFile(filePath, data).then((path) => {
                         param.data = filePath;
                         //执行回调
-                        if (addIndex !== dataArrLen) {
-                            eachArr(addIndex);
-                        }
+                        eachArr(addIndex);
                     }).catch((err) => {
                         param.errMessage = '写入文件失败';
                         //执行回调
-                        if (addIndex !== dataArrLen) {
-                            eachArr(addIndex);
-                        }
+                        eachArr(addIndex);
                     })
                 }
             } else {
                 //提取普通数据体，普通数据用utf8编码的，防止出现中文字无法识别的问题
                 let dataBody_utf8 = valueData_utf8.substring(between);
-                let data_utf8 = dataBody_utf8.replace(/[\r\n]/g, "").replace(/--$/, ""); //除去空格和结尾的--
+                let data_utf8 = dataBody_utf8.replace(/[\r\n]/g, ""); //除去空格
 
                 //支持普通数据类型，字符串型数据等。object类型数据会在浏览器上被formdata解析成[object object]，所以obj在传输前要转换成字符串
                 //处理编码为utf8，直接将数据存入
                 param.data = data_utf8; //将处理好的 普通数据体写入到param中
-                if (addIndex !== dataArrLen) {
-                    eachArr(addIndex);
-                }
+                eachArr(addIndex);
             }
 
             //将这个整理好的formdata参数存入到dataBody中
             dataBody[param.name] = param;
-
-            if (index === dataArrLen - 1) {
-                //formData中所有参数处理完成
-                resolve(dataBody);
-            };
         };
         eachArr(0);
     });
