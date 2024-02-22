@@ -2,7 +2,7 @@
  * 文件名：parse-post-data.js
  * 作者：https://github.com/fengfanv
  * 描述：post数据解析器
- * 修改时间：2023-09-17
+ * 修改时间：2024年2月22日
  * 资源地址：https://github.com/fengfanv/parse-post-data
  * parseFormData方法案例（上传文件）：https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFiles
  * parseFormData方法案例（上传文件夹）：https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFolder
@@ -199,6 +199,8 @@ function parseFormData(formdata, storageFilePath) {
                 //处理编码为binary
                 let dataBody = valueData.substring(between);
                 let data = dataBody.substring(0, 4).replace(/[\r\n]/g, '') + dataBody.substring(4, dataBody.length - 4) + dataBody.substring(dataBody.length - 4).replace(/[\r\n]/g, ''); //为数据体，去除数据头部和尾部的换行符（这句话在优化之前，因为尾部多删除东西了，所以导致上传的word文件无法正常解析，所以导致上传的js文件内容尾部丢失2个字母）
+                // console.log(data.match(/^(\r|\n){1}/))
+                data = data.replace(/^(\r|\n){1}/,'');//被上传的js文件，的头部，有时候会出现空行，换行符号删不干净的问题，这里再删除一下
                 
                 //.png 正常解析保存
                 //.jpg 正常解析保存
