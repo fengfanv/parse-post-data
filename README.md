@@ -6,12 +6,6 @@ node接收及解析post数据接收解析模块
 
 ------
 
-#### 来源：
-
-本中间件源于 [JS-library -> node](https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFiles) 里上传文件(YUMA_uploadFiles)及上传文件夹(YUMA_uploadFolder)案例
-
-[文件上传案例](https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFiles) | [文件夹上传案例](https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFolder)
-
 #### 应用模块：
 
 1、http、https
@@ -100,3 +94,13 @@ app.listen(80, function () {
 > `2023-9-17` 1、优化代码，优化代码注释，修复上传的word文件报无法正解析的问题，修复传空formdata数据时提取haxname会死循环的问题，修复仅上传单个参数(且该参数是文件)时文件内容末尾出现两个--的问题，修复提取formdata里某个参数的基本信息(数据名字、数据类型等)会在文件写入成功之前执行，导致文件虽然写入成功了，但拿不到文件信息的异步问题
 
 > `2024-2-22` 1、修复 被上传的js文件，的头部，有时候会出现空行，换行符号删不干净的问题
+
+> `2024-3-8` 1、增加稳定性
+
+### 参考链接
+
+1、[文件上传案例](https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFiles)
+
+2、[文件夹上传案例](https://github.com/fengfanv/JS-library/tree/master/node/YUMA_uploadFolder)
+
+3、[zipFile](https://github.com/fengfanv/JS-library/tree/master/node/zipFile)
